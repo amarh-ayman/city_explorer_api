@@ -8,6 +8,8 @@ const PORT = process.env.PORT || 3030;
 
 const server = express();
 
+server.use(cors());
+
 server.get('/test', (req, res) => res.send('You server is a live'));
 
 server.get('/location', (req, res) => {
@@ -18,12 +20,18 @@ server.get('/location', (req, res) => {
 });
 
 function Location(locationData) {
-  this.search_query = 'seattle';
+  // this.search_query = 'seattle';
   this.formatted_query = locationData[0].display_name;
   this.latitude = locationData[0].lat;
   this.longitude = locationData[0].lon;
 }
-
+server.get('*', (req, res) => {
+  let errorObj = {
+    status: 404,
+    resText: 'Sorry this page not found',
+  };
+  res.status(404).send(errorObj);
+});
 server.listen(PORT, () => {
   console.log(`listening to PORT ${PORT}`);
 });
