@@ -4,9 +4,9 @@ const express = require('express');
 require('dotenv').config(); ///npm i dotenv
 
 const cors = require('cors'); ///npm i cors
-const PORT = process.env.PORT || 3030;
 
 const server = express();
+const PORT = process.env.PORT || 3030;
 
 server.use(cors());
 
@@ -20,7 +20,7 @@ server.get('/location', (req, res) => {
 });
 
 function Location(locationData) {
-  // this.search_query = 'seattle';
+  this.search_query = 'Lynnwood';
   this.formatted_query = locationData[0].display_name;
   this.latitude = locationData[0].lat;
   this.longitude = locationData[0].lon;
