@@ -38,16 +38,16 @@ server.get('/weather', (req, res) => {
   // console.log(locationData);
 });
 function Weather(w_Data) {
-  this.forecast = w_Data.Weather.description;
-  this.time = w_Data.datetime();
+  this.forecast = w_Data.weather.description;
+  this.time = w_Data.datetime;
 }
 
 server.get('*', (req, res) => {
   let errorObj = {
-    status: 404,
+    status: 500,
     resText: 'Sorry this page not found',
   };
-  res.status(404).send(errorObj);
+  res.status(500).send(errorObj);
 });
 server.listen(PORT, () => {
   console.log(`listening to PORT ${PORT}`);
