@@ -34,12 +34,11 @@ server.get('/weather', (req, res) => {
     weatherStore.push(weatherData);
   });
   res.send(weatherStore);
-
-  // console.log(locationData);
 });
+
 function Weather(w_Data) {
   this.forecast = w_Data.weather.description;
-  this.time = w_Data.datetime;
+  this.time = new Date(w_Data.valid_date).toString().slice(0, 16);
 }
 
 server.get('*', (req, res) => {
