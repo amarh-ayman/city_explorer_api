@@ -1,53 +1,87 @@
 'use strict';
 
+/*---------------------start server.js---------------------------*/
+//Application Depandancies
 const express = require('express');
 require('dotenv').config(); ///npm i dotenv
-
 const cors = require('cors'); ///npm i cors
+const superagent = require('superagent');
 
+//Application Setup
 const server = express();
 const PORT = process.env.PORT || 3030;
-
 server.use(cors());
 
-server.get('/test', (req, res) => res.send('You server is a live'));
+//Routes
+server.get('/test', testAlive);
 /////location
-server.get('/location', (req, res) => {
-  let geoData = require('./data/location.json');
-  let locationData = new Location(geoData);
-  res.send(locationData);
-  // console.log(locationData);
-});
+server.get('/location', getLocation);
+/////weather
+server.get('/weather', getWeather);
+server.get('*', errorObject);
 
-function Location(locationData) {
-  this.search_query = 'Lynnwood';
+//listening to server
+server.listen(PORT, listeningPORT);
+
+/*---------------------start Function Expression------------------------------*/
+function testAlive(req, res) {
+  res.send('You server is a live');
+}
+
+function getLocation(req, res) {
+  let cityName = req.query.city;
+  let key = process.env.GEOCODE_API_KEY;
+  let locURL = `https://us1.locationiq.com/v1/search.php?key=${key}&q=${cityName}&format=json`;
+  superagent
+    .get(locURL) //send a request locatioIQ API
+    .then(geoData => {
+      let gData = geoData.body;
+      let locationData = new Location(cityName, gData);
+      res.send(locationData);
+      // console.log(geoData);
+    });
+}
+
+function getWeather(req, res) {
+  let cityName = req.query.city;
+  let key = process.env.WEATHER_API_KEY;
+  let weatherURL = `https://api.weatherbit.io/v2.0/forecast/daily?city=${cityName}&key=${key}`;
+  //let wth_Data = require('./data/weather.json');
+
+  superagent
+    .get(weatherURL) //send a request locatioIQ API
+    .then(wth_Data => {
+      let wData = wth_Data.body;
+      // console.log(wData);
+      let weatherStore = wData.data.map(item => {
+        return new Weather(item);
+      });
+      res.send(weatherStore.slice(0, 8));
+    });
+}
+
+function Location(cityN, locationData) {
+  this.search_query = cityN;
   this.formatted_query = locationData[0].display_name;
   this.latitude = locationData[0].lat;
   this.longitude = locationData[0].lon;
 }
-/////weather
-server.get('/weather', (req, res) => {
-  let wth_Data = require('./data/weather.json');
-  let weatherStore = [];
-  wth_Data.data.forEach(item => {
-    let weatherData = new Weather(item);
-    weatherStore.push(weatherData);
-  });
-  res.send(weatherStore);
-});
 
 function Weather(w_Data) {
   this.forecast = w_Data.weather.description;
   this.time = new Date(w_Data.valid_date).toString().slice(0, 16);
 }
 
-server.get('*', (req, res) => {
+function errorObject(req, res) {
   let errorObj = {
     status: 500,
     resText: 'Sorry this page not found',
   };
   res.status(500).send(errorObj);
-});
-server.listen(PORT, () => {
+}
+
+function listeningPORT() {
   console.log(`listening to PORT ${PORT}`);
-});
+}
+
+/*---------------------End Function Expression------------------------------*/
