@@ -6,13 +6,11 @@ const express = require('express');
 require('dotenv').config(); ///npm i dotenv
 const cors = require('cors'); ///npm i cors
 const superagent = require('superagent');
-const pg = require('pg');
+
 //Application Setup
 const server = express();
 const PORT = process.env.PORT || 5000;
 server.use(cors());
-const client = new pg.Client(process.env.DATABASE_URL);
-// client.connect();
 
 //Routes
 server.get('/test', testAlive);
@@ -24,15 +22,11 @@ server.get('/weather', getWeather);
 server.get('/parks', getPark);
 server.get('*', errorObject);
 
-/////sql
-server.get('/result', getDataHandler);
 ////root
 server.get('*', errorObject);
-//listening to server after connecting with postgress, good way for debugging
-client.connect().then(() => {
-  server.listen(PORT, () => {
-    console.log(`listening to PORT ${PORT}`);
-  });
+
+server.listen(PORT, () => {
+  console.log(`listening to PORT ${PORT}`);
 });
 
 /*---------------------start Function Expression------------------------------*/
@@ -44,34 +38,18 @@ function getLocation(req, res) {
   let cityName = req.query.city;
   let key = process.env.GEOCODE_API_KEY;
   let locURL = `https://us1.locationiq.com/v1/search.php?key=${key}&q=${cityName}&format=json`;
-  let SQL = `SELECT * FROM locations WHERE search_query=$1;`;
-  // let safeValues = [cityName];
-  // console.log(client.query(SQL, [cityName]));
-  client
-    .query(SQL, [cityName])
-    .then(result => {
-      result.rows.length === 0
-        ? superagent
-            .get(locURL) //send a request locatioIQ API
-            .then(geoData => {
-              let gData = geoData.body;
-              let locationData = new Location(cityName, gData);
-              res.send(locationData);
-              // console.log(cityName);
-              // console.log('API');
-            })
-            .catch(error => {
-              console.log(error);
-              res.send(error);
-            })
-        : res.send(result.rows);
-      // if (result.rows.length !== 0) console.log('DB');
+  superagent
+    .get(locURL) //send a request locatioIQ API
+    .then(geoData => {
+      let gData = geoData.body;
+      let locationData = new Location(cityName, gData);
+      res.send(locationData);
     })
     .catch(error => {
+      console.log(error);
       res.send(error);
     });
 }
-
 function getWeather(req, res) {
   let cityName = req.query.search_query;
   let key = process.env.WEATHER_API_KEY;
@@ -112,19 +90,10 @@ function getPark(req, res) {
 }
 
 function Location(cityN, locationData) {
-  this.searchQquery = cityN;
-  this.formattedQuery = locationData[0].display_name;
-  this.laTiTude = locationData[0].lat;
-  this.loNGiTude = locationData[0].lon;
-  //safe values
-  let SQL = `INSERT INTO locations (search_query,formatted_query,latitude,longitude) VALUES ($1,$2,$3,$4);`;
-  let safeValues = [
-    this.searchQquery,
-    this.formattedQuery,
-    this.laTiTude,
-    this.loNGiTude,
-  ];
-  client.query(SQL, safeValues);
+  this.search_query = cityN;
+  this.formatted_query = locationData[0].display_name;
+  this.latitude = locationData[0].lat;
+  this.longitude = locationData[0].lon;
 }
 
 function Weather(w_Data) {
@@ -148,16 +117,3 @@ function errorObject(req, res) {
 }
 
 /*---------------------End Function Expression------------------------------*/
-/*---------DataBase------------------*/
-
-function getDataHandler(req, res) {
-  let SQL = `SELECT * FROM locations;`;
-  client
-    .query(SQL)
-    .then(result => {
-      res.send(result.rows);
-    })
-    .catch(error => {
-      res.send(error);
-    });
-}
