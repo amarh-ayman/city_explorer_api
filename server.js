@@ -143,8 +143,7 @@ function Park(w_Data) {
 function errorObject(req, res) {
   let errorObj = {
     status: 500,
-    resText:
-      'Sorry this page not found \n if you want to see the database /result',
+    resText: 'Sorry this page not found',
   };
   res.status(500).send(errorObj);
 }
