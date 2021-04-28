@@ -19,7 +19,7 @@ server.get('/location', getLocation);
 /////weather
 server.get('/weather', getWeather);
 ////park
-server.get('/park', getPark);
+server.get('/parks', getPark);
 server.get('*', errorObject);
 
 //listening to server
@@ -48,7 +48,7 @@ function getLocation(req, res) {
 }
 
 function getWeather(req, res) {
-  let cityName = req.query.city;
+  let cityName = req.query.search_query;
   let key = process.env.WEATHER_API_KEY;
   let weatherURL = `https://api.weatherbit.io/v2.0/forecast/daily?city=${cityName}&key=${key}`;
 
@@ -68,7 +68,7 @@ function getWeather(req, res) {
 }
 
 function getPark(req, res) {
-  let cityName = req.query.city;
+  let cityName = req.query.search_query;
   let key = process.env.PARKS_API_KEY;
   let parkURL = `https://developer.nps.gov/api/v1/parks?q=${cityName}&limit=10&api_key=${key}`;
 
@@ -104,13 +104,7 @@ function Park(w_Data) {
   this.description = w_Data.description;
   this.url = w_Data.url;
 }
-/*
-   "name": "Klondike Gold Rush - Seattle Unit National Historical Park",
-     "address": "319 Second Ave S., Seattle, WA 98104",
-     "fee": "0.00",
-     "description": "Seattle flourished during and after the Klondike Gold Rush. Merchants supplied people from around the world passing through this port city on their way to a remarkable adventure in Alaska. Today, the park is your gateway to learn about the Klondike Gold Rush, explore the area's public lands, and engage with the local community.",
-     "url": "https://www.nps.gov/klse/index.htm"
-*/
+
 function errorObject(req, res) {
   let errorObj = {
     status: 500,
