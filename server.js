@@ -24,14 +24,13 @@ server.get('/weather', getWeather);
 server.get('/parks', getPark);
 
 /////sql
-// server.get('/add', addDataHandler);
-server.get('/people', getDataHandler);
+server.get('/result', getDataHandler);
 ////root
 server.get('*', errorObject);
 //listening to server after connecting with postgress, good way for debugging
 client.connect().then(() => {
   server.listen(PORT, () => {
-    console.log(`listening to PORT ${PORT} alohhhha`);
+    console.log(`listening to PORT ${PORT}`);
   });
 });
 
@@ -44,22 +43,36 @@ function getLocation(req, res) {
   let cityName = req.query.city;
   let key = process.env.GEOCODE_API_KEY;
   let locURL = `https://us1.locationiq.com/v1/search.php?key=${key}&q=${cityName}&format=json`;
-  superagent
-    .get(locURL) //send a request locatioIQ API
-    .then(geoData => {
-      let gData = geoData.body;
-      let locationData = new Location(cityName, gData);
-      new AddDataLocationsHandler(cityName, gData);
-      res.send(locationData);
+  let SQL = `SELECT * FROM locations WHERE search_query=$1;`;
+  // let safeValues = [cityName];
+  // console.log(client.query(SQL, [cityName]));
+  client
+    .query(SQL, [cityName])
+    .then(result => {
+      result.rows.length === 0
+        ? superagent
+            .get(locURL) //send a request locatioIQ API
+            .then(geoData => {
+              let gData = geoData.body;
+              let locationData = new Location(cityName, gData);
+              res.send(locationData);
+              // console.log(cityName);
+              // console.log('API');
+            })
+            .catch(error => {
+              console.log(error);
+              res.send(error);
+            })
+        : res.send(result.rows);
+      // if (result.rows.length !== 0) console.log('DB');
     })
     .catch(error => {
-      console.log(error);
       res.send(error);
     });
 }
 
 function getWeather(req, res) {
-  let cityName = req.query.city;
+  let cityName = req.query.search_query;
   let key = process.env.WEATHER_API_KEY;
   let weatherURL = `https://api.weatherbit.io/v2.0/forecast/daily?city=${cityName}&key=${key}&days=3`;
 
@@ -79,7 +92,7 @@ function getWeather(req, res) {
 }
 
 function getPark(req, res) {
-  let cityName = req.query.city;
+  let cityName = req.query.search_query;
   let key = process.env.PARKS_API_KEY;
   let parkURL = `https://developer.nps.gov/api/v1/parks?q=${cityName}&limit=10&api_key=${key}`;
 
@@ -98,10 +111,19 @@ function getPark(req, res) {
 }
 
 function Location(cityN, locationData) {
-  this.search_query = cityN;
-  this.formatted_query = locationData[0].display_name;
-  this.latitude = locationData[0].lat;
-  this.longitude = locationData[0].lon;
+  this.searchQquery = cityN;
+  this.formattedQuery = locationData[0].display_name;
+  this.laTiTude = locationData[0].lat;
+  this.loNGiTude = locationData[0].lon;
+  //safe values
+  let SQL = `INSERT INTO locations (search_query,formatted_query,latitude,longitude) VALUES ($1,$2,$3,$4);`;
+  let safeValues = [
+    this.searchQquery,
+    this.formattedQuery,
+    this.laTiTude,
+    this.loNGiTude,
+  ];
+  client.query(SQL, safeValues);
 }
 
 function Weather(w_Data) {
@@ -124,33 +146,8 @@ function errorObject(req, res) {
   res.status(500).send(errorObj);
 }
 
-function listeningPORT() {
-  console.log(`listening to PORT ${PORT} alohhhha`);
-}
-
 /*---------------------End Function Expression------------------------------*/
 /*---------DataBase------------------*/
-
-function AddDataLocationsHandler(cityN, locData) {
-  // console.log(req.query);
-  let searchQquery = cityN;
-  let formattedQuery = req.query.formatted_query;
-  let laTiTude = req.query.latitude;
-  let loGiTude = req.query.longitude;
-
-  //safe values
-  let SQL = `INSERT INTO locations (search_query,formatted_query,latitude,longitude) VALUES ($1,$2,$3,$4) WHERE NOT EXISTS(SELECT search_query FROM locations WHERE search_query=$1);`;
-  let safeValues = [searchQquery, formattedQuery, laTiTude, loGiTude];
-  client
-    .query(SQL, safeValues)
-    .then(result => {
-      // res.send(result.rows);
-      res.send('cool');
-    })
-    .catch(error => {
-      res.send(error);
-    });
-}
 
 function getDataHandler(req, res) {
   let SQL = `SELECT * FROM locations;`;
