@@ -24,6 +24,7 @@ server.get('/location', getLocation);
 server.get('/weather', getWeather);
 ////park
 server.get('/parks', getPark);
+server.get('*', errorObject);
 
 /////sql
 server.get('/result', getDataHandler);
