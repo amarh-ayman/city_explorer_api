@@ -14,8 +14,7 @@ server.use(cors());
 const client = new pg.Client({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
-}); // client.connect();
-
+});
 //Routes
 server.get('/test', testAlive);
 /////location
@@ -24,7 +23,10 @@ server.get('/location', getLocation);
 server.get('/weather', getWeather);
 ////park
 server.get('/parks', getPark);
-
+////movies
+server.get('/movies', getMovies);
+////yelp
+server.get('/yelp', getYelp);
 /////sql
 server.get('/result', getDataHandler);
 ////root
@@ -112,6 +114,50 @@ function getPark(req, res) {
     });
 }
 
+function getMovies(req, res) {
+  let cityName = req.query.search_query;
+  let key = process.env.MOVIE_API_KEY;
+  let moviesURL = `https://api.themoviedb.org/3/search/movie?api_key=${key}&query=${cityName}`;
+
+  superagent
+    .get(moviesURL)
+    .then(moviesData => {
+      let mData = moviesData.body;
+      console.log(mData);
+      let moviesStore = mData.results.map(item => {
+        console.log(item);
+        return new Movies(item);
+      });
+      res.send(moviesStore);
+    })
+    .catch(error => {
+      res.send(error);
+    });
+}
+function getYelp(req, res) {
+  let cityName = req.query.search_query;
+  let key = process.env.YELP_API_KEY;
+  let pageNumber = req.query.page;
+  let limit = 5;
+  let offset = (pageNumber - 1) * limit + 1;
+  let url = `https://api.yelp.com/v3/businesses/search?location=${cityName}&limit=${limit}&offset=${offset}`;
+  superagent
+    .get(url)
+    .set('Authorization', `Bearer ${key}`)
+    .then(ylp_Data => {
+      let yData = ylp_Data.body;
+      console.log(yData);
+      const yelpStore = yData.businesses.map(element => {
+        return new Ylp(element);
+      });
+      res.send(yelpStore);
+    })
+    .catch(error => {
+      res.send(error);
+    });
+}
+
+/*-------------constructer's----------------*/
 function Location(cityN, locationData) {
   this.searchQquery = cityN;
   this.formattedQuery = locationData[0].display_name;
@@ -138,6 +184,22 @@ function Park(w_Data) {
   this.fee = w_Data.entranceFees[0].cost;
   this.description = w_Data.description;
   this.url = w_Data.url;
+}
+function Movies(m_Data) {
+  this.title = m_Data.title;
+  this.overview = m_Data.overview;
+  this.average_votes = m_Data.vote_average;
+  this.total_votes = m_Data.vote_count;
+  this.image_url = m_Data.poster_path;
+  this.popularity = m_Data.popularity;
+  this.released_on = m_Data.release_date;
+}
+function Ylp(YData) {
+  this.name = YData.name;
+  this.image_url = YData.image_url;
+  this.price = YData.price;
+  this.rating = YData.rating;
+  this.url = YData.url;
 }
 
 function errorObject(req, res) {
